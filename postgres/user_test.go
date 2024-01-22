@@ -111,11 +111,16 @@ func TestURLRepositoryTable_Get(t *testing.T) {
 
 	userDB := NewUserRepository(client)
 
+	// take a look at testdata/fxtures/users.yml
+	// this email exists there so we must be able to fetch it
+	_, err := userDB.Get(context.Background(), "john.doe@gmail.com")
+	require.NoError(t, err)
+
 	email := "test@test.com"
 	firstName := "Ken Thompson"
 
 	// email does not exist here
-	_, err := userDB.Get(context.Background(), email)
+	_, err = userDB.Get(context.Background(), email)
 	require.Error(t, err)
 
 	require.NoError(t, userDB.Create(context.Background(), &User{
