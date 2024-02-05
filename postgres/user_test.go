@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -149,8 +150,12 @@ func TestURLRepositoryTable_Get(t *testing.T) {
 
 	// email does not exist here
 	_, err = userDB.Get(context.Background(), email)
-	if err != nil {
-		t.Fatal(err)
+	if err == nil {
+		t.Fatal(errors.New("expected an error here. Email should not be found"))
+	}
+
+	if !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("Unexpected database error. Expected %v got %v", sql.ErrNoRows, err)
 	}
 
 	err = userDB.Create(context.Background(), &User{
