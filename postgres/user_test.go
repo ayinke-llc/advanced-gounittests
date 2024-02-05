@@ -4,9 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/require"
 
 	testfixtures "github.com/go-testfixtures/testfixtures/v3"
 	"github.com/golang-migrate/migrate/v4"
@@ -22,19 +21,28 @@ func prepareTestDatabase(t *testing.T, dsn string) {
 	var err error
 
 	db, err := sql.Open("postgres", dsn)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	require.NoError(t, db.Ping())
+	err = db.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	migrator, err := migrate.NewWithDatabaseInstance(
 		fmt.Sprintf("file://%s", "migrations"), "postgres", driver)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if err := migrator.Up(); err != nil && err != migrate.ErrNoChange {
-		require.NoError(t, err)
+		t.Fatal(err)
 	}
 
 	fixtures, err := testfixtures.New(
@@ -42,9 +50,14 @@ func prepareTestDatabase(t *testing.T, dsn string) {
 		testfixtures.Dialect("postgres"),
 		testfixtures.Directory("testdata/fixtures"),
 	)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	require.NoError(t, fixtures.Load())
+	err = fixtures.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 // setupDatabase spins up a new Postgres container and returns a closure
@@ -71,11 +84,14 @@ func setupDatabase(t *testing.T) (*sql.DB, func()) {
 			ContainerRequest: containerReq,
 			Started:          true,
 		})
-
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	port, err := dbContainer.MappedPort(context.Background(), "5432")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	dsn = fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", "betterstack", "betterstack",
 		fmt.Sprintf("localhost:%s", port.Port()), "betterstacktest")
@@ -83,13 +99,20 @@ func setupDatabase(t *testing.T) (*sql.DB, func()) {
 	prepareTestDatabase(t, dsn)
 
 	db, err := sql.Open("postgres", dsn)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	require.NoError(t, db.Ping())
+	err = db.Ping()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	return db, func() {
 		err := dbContainer.Terminate(context.Background())
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -99,11 +122,13 @@ func TestURLRepositoryTable_Create(t *testing.T) {
 
 	userDB := NewUserRepository(client)
 
-	require.NoError(t, userDB.Create(context.Background(), &User{
+	err := userDB.Create(context.Background(), &User{
 		Email:    "ken@unix.org",
 		FullName: "Ken Thompson",
-	}))
-	//
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestURLRepositoryTable_Get(t *testing.T) {
@@ -115,24 +140,38 @@ func TestURLRepositoryTable_Get(t *testing.T) {
 	// take a look at testdata/fxtures/users.yml
 	// this email exists there so we must be able to fetch it
 	_, err := userDB.Get(context.Background(), "john.doe@gmail.com")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	email := "test@test.com"
 	firstName := "Ken Thompson"
 
 	// email does not exist here
 	_, err = userDB.Get(context.Background(), email)
-	require.Error(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	require.NoError(t, userDB.Create(context.Background(), &User{
+	err = userDB.Create(context.Background(), &User{
 		Email:    email,
 		FullName: firstName,
-	}))
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// fetch the same email again
 	user, err := userDB.Get(context.Background(), email)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	require.Equal(t, email, user.Email)
-	require.Equal(t, firstName, user.FullName)
+	if !strings.EqualFold(email, user.Email) {
+		t.Fatalf("retrieved values do not match. Expected %s, got %s", email, user.Email)
+	}
+
+	if !strings.EqualFold(firstName, user.FullName) {
+		t.Fatalf("retrieved values do not match. Expected %s, got %s", firstName, user.FullName)
+	}
 }
