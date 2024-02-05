@@ -2,12 +2,26 @@ package fixtures
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	"github.com/sebdah/goldie/v2"
 )
+
+func verifyMatch(t *testing.T, v interface{}) {
+	t.Helper()
+	g := goldie.New(t, goldie.WithFixtureDir("./testdata/golden"))
+
+	b := new(bytes.Buffer)
+
+	err := json.NewEncoder(b).Encode(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g.Assert(t, t.Name(), b.Bytes())
+}
 
 func TestPrettyPrintJSON(t *testing.T) {
 	tt := []struct {
@@ -29,24 +43,34 @@ func TestPrettyPrintJSON(t *testing.T) {
 
 	for _, v := range tt {
 		f, err := os.Open(v.filePath)
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		defer func() {
-			require.NoError(t, f.Close())
+			if err := f.Close(); err != nil {
+				t.Fatal(err)
+			}
 		}()
 
 		b := new(bytes.Buffer)
 		_, err = io.Copy(b, f)
-		require.NoError(t, err)
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		formattedJSON, err := PrettyPrintJSON(b.String())
 		if v.hasErr {
-			require.Error(t, err)
+			if err == nil {
+				t.Fatal("Expected an error but got nil")
+			}
 			continue
 		}
 
-		require.NoError(t, err)
-		// Make sure the formatted item differs from what was passed to i
-		require.NotEqual(t, b.String(), formattedJSON)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		verifyMatch(t, formattedJSON)
 	}
 }
