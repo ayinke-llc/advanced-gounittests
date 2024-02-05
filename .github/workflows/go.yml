@@ -32,9 +32,6 @@ jobs:
     - name: Get and verify dependencies
       run: go mod download && go mod verify
 
-    - name: Build app to make sure there are zero issues
-      run: go build -o app ./cmd
-
     - name: Run all tests
       run: go test -tags integration -v ./...
 
