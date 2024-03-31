@@ -13,6 +13,3 @@ func PrettyPrintJSON(str string) (string, error) {
 	return b.String(), nil
 }
 
-// func HighlightCode(w io.Writer, code string) error {
-// 	return quick.Highlight(w, code, "json", "terminal256", "monokai")
-// }
