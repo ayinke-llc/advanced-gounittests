@@ -1,8 +1,7 @@
 {
   "name": "John Doe",
-  "age": 30,
-  "isEmployed": true,
-  "phoneNumbers": [
+                   "age": 30, "isEmployed": true,
+						"phoneNumbers": [
     "123-456-7890",
     "987-654-3210"
   ]
